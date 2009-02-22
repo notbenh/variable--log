@@ -2,6 +2,8 @@ package Variable::Log;
 
 use warnings;
 use strict;
+use Variable::Magic qw{wizard cast dispell};
+use Carp::Assert::More;
 
 =head1 NAME
 
@@ -32,13 +34,54 @@ Perhaps a little code snippet.
 A list of functions that can be exported.  You can delete this section
 if you don't export anything, such as for a purely object-oriented module.
 
+=cut
+
+use constant SCALARVARIABLELOGGER = wizard 
+           sig      => ...,
+           data     => sub { ... },
+           get      => sub { my ($ref, $data [, $op]) = @_; ... },
+           set      => sub { my ($ref, $data [, $op]) = @_; ... },
+           len      => sub { my ($ref, $data, $len [, $op]) = @_; ... ; return $newlen; },
+           clear    => sub { my ($ref, $data [, $op]) = @_; ... },
+           free     => sub { my ($ref, $data [, $op]) = @_, ... },
+           copy     => sub { my ($ref, $data, $key, $elt [, $op]) = @_; ... },
+           local    => sub { my ($ref, $data [, $op]) = @_; ... },
+           fetch    => sub { my ($ref, $data, $key [, $op]) = @_; ... },
+           store    => sub { my ($ref, $data, $key [, $op]) = @_; ... },
+           exists   => sub { my ($ref, $data, $key [, $op]) = @_; ... },
+           delete   => sub { my ($ref, $data, $key [, $op]) = @_; ... },
+           copy_key => $bool,
+           op_info  => [ 0 | VMG_OP_INFO_NAME | VMG_OP_INFO_OBJECT ]
+;
+
+use constant CODEREFVARIABLELOGGER = wizard 
+           get      => sub { my ($ref, $data [, $op]) = @_; ... },
+           set      => sub { my ($ref, $data [, $op]) = @_; ... },
+;
+
+use constant ARRAYVARIABLELOGGER = wizard 
+           get      => sub { my ($ref, $data [, $op]) = @_; ... },
+           set      => sub { my ($ref, $data [, $op]) = @_; ... },
+;
+
 =head1 FUNCTIONS
 
-=head2 function1
+=head2 add_logging
+
+
 
 =cut
 
-sub function1 {
+sub add_logging {
+   my ($var, $log) = @_;
+   assert_defined( $var );
+   assert_defined( $log );
+   assert_like(ref($log),qr/^(CODE|ARRAY|)$/, sprintf q{ %s is not an acceptable type for a logger}, ref($log) );
+   
+   # pick the right logger based on the the type of $log
+   return cast $var, (ref($log) eq 'ARRAY') ? ARRAYVARIABLELOGGER
+                   : (ref($log) eq 'CODE')  ? CODEVARIABLELOGGER
+                   :                          SCALARVARIABLELOGGER ;
 }
 
 =head2 function2
