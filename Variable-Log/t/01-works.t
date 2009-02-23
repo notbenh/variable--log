@@ -45,3 +45,20 @@ eq_or_diff(
    q{code output looks right},
 );
 
+ok( stop_logging($value), q{stop logging} );
+
+eq_or_diff(
+   $log_arr,
+   [ q{accessed : 10},
+     q{accessed : 10},
+     q{set : 11},
+   ],
+   q{array was untouched, stop_logging worked },
+);
+
+eq_or_diff(
+   $lc_hash,
+   { accessed => [10], set => [11] },
+   q{code output untouched, stop_logging worked },
+);
+

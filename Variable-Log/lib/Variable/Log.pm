@@ -50,6 +50,10 @@ our @EXPORT = qw{
 
 =cut
 
+# !! I REALLY HATE THIS
+my $__GLOBAL_WIZARD = {};
+
+
 sub add_logging {
    my ($log, $var) = @_;
    croak sprintf q{%s is not an acceptable type for a logger}, ref($log) || 'undef'
@@ -57,7 +61,8 @@ sub add_logging {
    croak sprintf q{A variable must be specifed for logging} 
       unless defined $var ;
 
-   my $wiz = wizard 
+   #my $wiz = wizard 
+   $__GLOBAL_WIZARD = wizard 
       get => sub{ my ($ref, $data) = @_; 
                   return (ref($log) eq 'ARRAY') ? push( @$log, sprintf( q{%s : %s}, 'accessed', $$ref ))
                        : (ref($log) eq 'CODE' ) ? $log->('accessed',$$ref)
@@ -70,8 +75,8 @@ sub add_logging {
                 },
    ;
       
-   # you have to cast directly to the input, not the lexical copy?
-   return cast $_[1], $wiz ; 
+   # you have to cast directly to the input, not the lexical copy
+   return cast $_[1], $__GLOBAL_WIZARD ; 
 }
 
 =head2 function2
@@ -79,6 +84,8 @@ sub add_logging {
 =cut
 
 sub stop_logging {
+   # this is overly harsh, though until I work out the best way to store the wizard that is generated in add, we just wipe everything.
+   return dispell $_[0], $__GLOBAL_WIZARD;
 }
 
 =head1 AUTHOR
