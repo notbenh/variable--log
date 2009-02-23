@@ -49,16 +49,16 @@ ok( stop_logging($value), q{stop logging} );
 
 eq_or_diff(
    $log_arr,
-   [ q{accessed : 10},
-     q{accessed : 10},
-     q{set : 11},
+   [ q{accessed : 10}, #add code loggging
+     q{accessed : 10}, #look at $value pre inc
+     q{set : 11}, #value set at inc
    ],
    q{array was untouched, stop_logging worked },
 );
 
 eq_or_diff(
    $lc_hash,
-   { accessed => [10], set => [11] },
+   { accessed => [10], set => [11] }, #look at $value pre inc and set post inc
    q{code output untouched, stop_logging worked },
 );
 
