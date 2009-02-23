@@ -3,7 +3,7 @@ package Variable::Log;
 use warnings;
 use strict;
 use Variable::Magic qw{wizard cast dispell};
-use Carp::Assert::More;
+use Carp qw{croak};
 
 =head1 NAME
 
@@ -35,34 +35,12 @@ A list of functions that can be exported.  You can delete this section
 if you don't export anything, such as for a purely object-oriented module.
 
 =cut
+use Exporter qw{import};
+our @EXPORT = qw{
+   add_logging
+   stop_logging
+};
 
-use constant SCALARVARIABLELOGGER = wizard 
-           sig      => ...,
-           data     => sub { ... },
-           get      => sub { my ($ref, $data [, $op]) = @_; ... },
-           set      => sub { my ($ref, $data [, $op]) = @_; ... },
-           len      => sub { my ($ref, $data, $len [, $op]) = @_; ... ; return $newlen; },
-           clear    => sub { my ($ref, $data [, $op]) = @_; ... },
-           free     => sub { my ($ref, $data [, $op]) = @_, ... },
-           copy     => sub { my ($ref, $data, $key, $elt [, $op]) = @_; ... },
-           local    => sub { my ($ref, $data [, $op]) = @_; ... },
-           fetch    => sub { my ($ref, $data, $key [, $op]) = @_; ... },
-           store    => sub { my ($ref, $data, $key [, $op]) = @_; ... },
-           exists   => sub { my ($ref, $data, $key [, $op]) = @_; ... },
-           delete   => sub { my ($ref, $data, $key [, $op]) = @_; ... },
-           copy_key => $bool,
-           op_info  => [ 0 | VMG_OP_INFO_NAME | VMG_OP_INFO_OBJECT ]
-;
-
-use constant CODEREFVARIABLELOGGER = wizard 
-           get      => sub { my ($ref, $data [, $op]) = @_; ... },
-           set      => sub { my ($ref, $data [, $op]) = @_; ... },
-;
-
-use constant ARRAYVARIABLELOGGER = wizard 
-           get      => sub { my ($ref, $data [, $op]) = @_; ... },
-           set      => sub { my ($ref, $data [, $op]) = @_; ... },
-;
 
 =head1 FUNCTIONS
 
@@ -73,22 +51,34 @@ use constant ARRAYVARIABLELOGGER = wizard
 =cut
 
 sub add_logging {
-   my ($var, $log) = @_;
-   assert_defined( $var );
-   assert_defined( $log );
-   assert_like(ref($log),qr/^(CODE|ARRAY|)$/, sprintf q{ %s is not an acceptable type for a logger}, ref($log) );
-   
-   # pick the right logger based on the the type of $log
-   return cast $var, (ref($log) eq 'ARRAY') ? ARRAYVARIABLELOGGER
-                   : (ref($log) eq 'CODE')  ? CODEVARIABLELOGGER
-                   :                          SCALARVARIABLELOGGER ;
+   my ($log, $var) = @_;
+   croak sprintf q{%s is not an acceptable type for a logger}, ref($log) || 'undef'
+      unless defined $log && ref($log) =~ m/^(CODE|ARRAY)$/;
+   croak sprintf q{A variable must be specifed for logging} 
+      unless defined $var ;
+
+   my $wiz = wizard 
+      get => sub{ my ($ref, $data) = @_; 
+                  return (ref($log) eq 'ARRAY') ? push( @$log, sprintf( q{%s : %s}, 'accessed', $$ref ))
+                       : (ref($log) eq 'CODE' ) ? $log->('accessed',$$ref)
+                       :                          croak q{Don't know how we got here, but something went bad};
+                },
+      set => sub{ my ($ref, $data) = @_; 
+                  return (ref($log) eq 'ARRAY') ? push( @$log, sprintf( q{%s : %s}, 'set', $$ref ))
+                       : (ref($log) eq 'CODE' ) ? $log->('set',$$ref)
+                       :                          croak q{Don't know how we got here, but something went bad};
+                },
+   ;
+      
+   # you have to cast directly to the input, not the lexical copy?
+   return cast $_[1], $wiz ; 
 }
 
 =head2 function2
 
 =cut
 
-sub function2 {
+sub stop_logging {
 }
 
 =head1 AUTHOR
